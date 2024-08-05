@@ -3,8 +3,6 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
-from sklearn.linear_model import Ridge, Lasso, ElasticNet
-from sklearn.neighbors import KNeighborsRegressor
 from sklearn.impute import SimpleImputer
 from scipy.optimize import minimize
 import openai
@@ -12,6 +10,9 @@ from dotenv import load_dotenv
 import os
 import seaborn as sns
 import matplotlib.pyplot as plt
+from heatmap import display_heatmap
+from regression import train_models
+from doe import create_full_factorial_design
 
 # Set the OpenAI API key
 openai.api_key = st.secrets["general"]["OPENAI_API_KEY"]
@@ -115,13 +116,8 @@ if all(column in data.columns for column in columns_needed):
     numeric_cols = combined_df.select_dtypes(include=[np.number]).columns.tolist()
     combined_df[numeric_cols].fillna(combined_df[numeric_cols].mean(), inplace=True)
 
-    # Plot correlation heatmap
-    st.subheader("Correlation Matrix")
-    plt.figure(figsize=(10, 8))
-    corr_matrix = combined_df[numeric_cols].corr()
-    sns.heatmap(corr_matrix, annot=True, cmap='coolwarm')
-    plt.title('Correlation Matrix Including Ingredients')
-    st.pyplot(plt)
+    # Display heatmap
+    display_heatmap(combined_df[numeric_cols])
 
     # Prepare data for modeling
     X = data[['Ingredient A_1', 'Ingredient B_2', 'Ingredient C_3', 'Ingredient D_4']]
@@ -137,42 +133,8 @@ if all(column in data.columns for column in columns_needed):
     # Model selection
     model_choice = st.selectbox("Choose a regression model", ["Ridge Regressor", "Lasso Regressor", "ElasticNet Regressor", "KNN Regressor"], key='model_choice')
 
-    if model_choice == "Ridge":
-        model_initial_fiber_tear_1 = Ridge().fit(X, y_initial_fiber_tear_1)
-        model_initial_fiber_tear_2 = Ridge().fit(X, y_initial_fiber_tear_2)
-        model_initial_fast_load = Ridge().fit(X, y_initial_fast_load)
-        model_initial_slow_load = Ridge().fit(X, y_initial_slow_load)
-        model_after_500_fiber_tear_1 = Ridge().fit(X, y_after_500_fiber_tear_1)
-        model_after_500_fiber_tear_2 = Ridge().fit(X, y_after_500_fiber_tear_2)
-        model_after_500_fast_load = Ridge().fit(X, y_after_500_fast_load)
-        model_after_500_slow_load = Ridge().fit(X, y_after_500_slow_load)
-    elif model_choice == "Lasso":
-        model_initial_fiber_tear_1 = Lasso().fit(X, y_initial_fiber_tear_1)
-        model_initial_fiber_tear_2 = Lasso().fit(X, y_initial_fiber_tear_2)
-        model_initial_fast_load = Lasso().fit(X, y_initial_fast_load)
-        model_initial_slow_load = Lasso().fit(X, y_initial_slow_load)
-        model_after_500_fiber_tear_1 = Lasso().fit(X, y_after_500_fiber_tear_1)
-        model_after_500_fiber_tear_2 = Lasso().fit(X, y_after_500_fiber_tear_2)
-        model_after_500_fast_load = Lasso().fit(X, y_after_500_fast_load)
-        model_after_500_slow_load = Lasso().fit(X, y_after_500_slow_load)
-    elif model_choice == "ElasticNet":
-        model_initial_fiber_tear_1 = ElasticNet().fit(X, y_initial_fiber_tear_1)
-        model_initial_fiber_tear_2 = ElasticNet().fit(X, y_initial_fiber_tear_2)
-        model_initial_fast_load = ElasticNet().fit(X, y_initial_fast_load)
-        model_initial_slow_load = ElasticNet().fit(X, y_initial_slow_load)
-        model_after_500_fiber_tear_1 = ElasticNet().fit(X, y_after_500_fiber_tear_1)
-        model_after_500_fiber_tear_2 = ElasticNet().fit(X, y_after_500_fiber_tear_2)
-        model_after_500_fast_load = ElasticNet().fit(X, y_after_500_fast_load)
-        model_after_500_slow_load = ElasticNet().fit(X, y_after_500_slow_load)
-    else:
-        model_initial_fiber_tear_1 = KNeighborsRegressor().fit(X, y_initial_fiber_tear_1)
-        model_initial_fiber_tear_2 = KNeighborsRegressor().fit(X, y_initial_fiber_tear_2)
-        model_initial_fast_load = KNeighborsRegressor().fit(X, y_initial_fast_load)
-        model_initial_slow_load = KNeighborsRegressor().fit(X, y_initial_slow_load)
-        model_after_500_fiber_tear_1 = KNeighborsRegressor().fit(X, y_after_500_fiber_tear_1)
-        model_after_500_fiber_tear_2 = KNeighborsRegressor().fit(X, y_after_500_fiber_tear_2)
-        model_after_500_fast_load = KNeighborsRegressor().fit(X, y_after_500_fast_load)
-        model_after_500_slow_load = KNeighborsRegressor().fit(X, y_after_500_slow_load)
+    models = train_models(X, y_initial_fiber_tear_1, y_initial_fiber_tear_2, y_initial_fast_load, y_initial_slow_load, y_after_500_fiber_tear_1, y_after_500_fiber_tear_2, y_after_500_fast_load, y_after_500_slow_load, model_choice)
+    model_initial_fiber_tear_1, model_initial_fiber_tear_2, model_initial_fast_load, model_initial_slow_load, model_after_500_fiber_tear_1, model_after_500_fiber_tear_2, model_after_500_fast_load, model_after_500_slow_load = models
 
     # Define prediction function
     def predict_properties(a, b, c, d):
@@ -272,6 +234,11 @@ if all(column in data.columns for column in columns_needed):
         optimal_location_fig = px.scatter_3d(latent_space, x='X', y='Y', z='Z', title="Latent Space with Optimal Solution")
         optimal_location_fig.add_trace(go.Scatter3d(x=[optimal_a], y=[optimal_b], z=[optimal_c], mode='markers', marker=dict(size=5, color='red')))
         st.plotly_chart(optimal_location_fig, use_container_width=True)
+
+        # Generate full factorial design
+        df_full_factorial_design = create_full_factorial_design(optimal_a, optimal_b, optimal_c, optimal_d)
+        st.markdown("<h2 class='virtual-assistant reduce-space'>Full Factorial Design</h2>", unsafe_allow_html=True)
+        st.dataframe(df_full_factorial_design)
 
     # Define task addition function
     def add_task(task_name, duration):
