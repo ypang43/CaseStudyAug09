@@ -10,6 +10,8 @@ from scipy.optimize import minimize
 import openai
 from dotenv import load_dotenv
 import os
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 load_dotenv()
 openai.api_key = os.getenv('OPENAI_API_KEY')
@@ -119,7 +121,6 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-
 # Use st.image to display the logo
 st.sidebar.image("HenkelLogo.png", use_column_width=True)
 
@@ -190,6 +191,23 @@ columns_needed = [
 if all(column in data.columns for column in columns_needed):
     imputer = SimpleImputer(strategy='mean')
     data[columns_needed] = imputer.fit_transform(data[columns_needed])
+
+    # Prepare data for the heatmap
+    ingredients = data[['Ingredient A_1', 'Ingredient B_2', 'Ingredient C_3', 'Ingredient D_4']]
+    properties = data.drop(['Ingredient A_1', 'Ingredient B_2', 'Ingredient C_3', 'Ingredient D_4'], axis=1)
+    combined_df = pd.concat([ingredients.reset_index(drop=True), properties.reset_index(drop=True)], axis=1)
+
+    # Ensure only numeric data for correlation matrix
+    numeric_cols = combined_df.select_dtypes(include=[np.number]).columns.tolist()
+    combined_df[numeric_cols].fillna(combined_df[numeric_cols].mean(), inplace=True)
+
+    # Plot correlation heatmap
+    st.subheader("Correlation Matrix")
+    plt.figure(figsize=(12, 10))
+    corr_matrix = combined_df[numeric_cols].corr()
+    sns.heatmap(corr_matrix, annot=True, cmap='coolwarm')
+    plt.title('Correlation Matrix Including Ingredients')
+    st.pyplot(plt)
 
     # Prepare data for modeling
     X = data[['Ingredient A_1', 'Ingredient B_2', 'Ingredient C_3', 'Ingredient D_4']]
