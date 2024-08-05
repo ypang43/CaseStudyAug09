@@ -14,7 +14,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 load_dotenv()
-openai.api_key = os.getenv('OPENAI_API_KEY')
+openai.api_key = st.secrets["OPENAI_API_KEY"]
 
 # Define function to get LLM response
 def get_llm_response(prompt):
@@ -203,7 +203,7 @@ if all(column in data.columns for column in columns_needed):
 
     # Plot correlation heatmap
     st.subheader("Correlation Matrix")
-    plt.figure(figsize=(12, 10))
+    plt.figure(figsize=(10, 8))
     corr_matrix = combined_df[numeric_cols].corr()
     sns.heatmap(corr_matrix, annot=True, cmap='coolwarm')
     plt.title('Correlation Matrix Including Ingredients')

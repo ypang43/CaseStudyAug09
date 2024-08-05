@@ -4,6 +4,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.impute import SimpleImputer
 import streamlit as st
+import numpy as np
 
 def plot_correlation_heatmap(data_file):
     # Load and preprocess the data
