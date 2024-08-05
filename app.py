@@ -14,7 +14,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 # Set the OpenAI API key
-#openai.api_key = st.secrets["general"]["OPENAI_API_KEY"]
+openai.api_key = st.secrets["general"]["OPENAI_API_KEY"]
 
 # Define function to get LLM response
 def get_llm_response(prompt):
