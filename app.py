@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 from heatmap import display_heatmap
 from regression import train_models
 from doe import create_full_factorial_design
+from experiment_booking import initialize_tasks, render_task_buttons, display_schedule
 
 # Set the OpenAI API key
 openai.api_key = st.secrets["general"]["OPENAI_API_KEY"]
@@ -240,45 +241,14 @@ if all(column in data.columns for column in columns_needed):
         st.markdown("<h2 class='virtual-assistant reduce-space'>Full Factorial Design</h2>", unsafe_allow_html=True)
         st.dataframe(df_full_factorial_design)
 
-    # Define task addition function
-    def add_task(task_name, duration):
-        task_start = pd.to_datetime('today')
-        task_finish = task_start + pd.Timedelta(days=duration)
-        st.session_state.tasks.append({'Task': task_name, 'Start': task_start, 'Finish': task_finish})
+# Initialize task list
+initialize_tasks()
 
-    # Initialize session state
-    if 'tasks' not in st.session_state:
-        st.session_state.tasks = []
+# Render task buttons
+render_task_buttons()
 
-    # Sidebar for adding tasks
-    st.sidebar.markdown("<h2 class='sidebar-title reduce-space'>Add Tasks</h2>", unsafe_allow_html=True)
-    if st.sidebar.button('Add Experiment'):
-        add_task('New Experiment', 2)
-
-    if st.sidebar.button('Add Aging Study'):
-        add_task('New Aging Study', 42)
-
-    # Display schedule data
-    schedule_data = pd.DataFrame(st.session_state.tasks)
-
-    if not schedule_data.empty:
-        project_start = pd.to_datetime('today')
-        project_end = project_start + pd.Timedelta(weeks=8)
-        total_duration = (schedule_data['Finish'] - schedule_data['Start']).sum()
-        if total_duration > pd.Timedelta(weeks=8):
-            st.sidebar.error("Project duration exceeds the maximum allowed 8 months")
-        elif total_duration < pd.Timedelta(weeks=6):
-            st.sidebar.warning("Project duration is less than the minimum required 6 months")
-
-        fig_gantt = px.timeline(schedule_data, x_start='Start', x_end='Finish', y='Task')
-
-        st.subheader("Experiment Scheduling", anchor='experiment_scheduling')
-        st.plotly_chart(fig_gantt, use_container_width=True)
-    else:
-        st.write("No tasks added yet. Use the buttons on the sidebar to add tasks.")
-
-else:
-    st.write("Please upload an Excel file to proceed.")
+# Display schedule
+display_schedule()
 
 # Footer
 st.markdown(
