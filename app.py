@@ -119,14 +119,9 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-st.sidebar.markdown(
-    """
-    <div class="header">
-        <img src="/mnt/data/HenkelLogo.png" alt="Henkel Logo">
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+
+# Use st.image to display the logo
+st.sidebar.image("HenkelLogo.png", use_column_width=True)
 
 st.markdown(
     """
@@ -390,8 +385,10 @@ else:
 st.markdown(
     """
     <div class="footer">
-        © Yuan Pang<br>
-        Dashboard for Henkel interview demonstration only
+        © Yuan Pang All rights reserved<br>
+        Dashboard for Henkel interview demonstration ONLY<br>
+        Version 0.1.4 <br>
+        2024 August 05 <br>
     </div>
     """,
     unsafe_allow_html=True
