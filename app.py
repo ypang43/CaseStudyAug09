@@ -8,15 +8,15 @@ from scipy.optimize import minimize
 import openai
 from dotenv import load_dotenv
 import os
-import seaborn as sns
-import matplotlib.pyplot as plt
 from heatmap import display_heatmap
-from regression import train_models
 from doe import create_full_factorial_design
 from experiment_booking import initialize_tasks, render_task_buttons, display_schedule
 
+# Load environment variables
+load_dotenv()
+
 # Set the OpenAI API key
-openai.api_key = st.secrets["general"]["OPENAI_API_KEY"]
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # Define function to get LLM response
 def get_llm_response(prompt):
@@ -74,7 +74,7 @@ component_c = slider_and_input("Ingredient C", 1.5)
 component_d = slider_and_input("Ingredient D", 1.5)
 
 total_components = component_a + component_b + component_c + component_d
-remaining_percentage = 100 - total_components
+remaining_percentage = 12 - total_components
 
 if total_components > 12:
     st.sidebar.error("Total composition should not exceed 12. Adjust the components.")
@@ -100,8 +100,8 @@ data.replace('-', np.nan, inplace=True)
 columns_needed = [
     'Ingredient A_1', 'Ingredient B_2', 'Ingredient C_3', 'Ingredient D_4', 
     'Initial: Fiber tear #1_6', 'Initial: Fiber tear #2_7', 'Initial: Fast Load_8', 'Initial: slow load_9',
-    'After 500 hrs: Fiber tear After Aging #1_10', 'After 500 hrs: Fiber tear After Aging #2_11', 
-    'After 500 hrs: Fast Load_12', 'After 500 hrs: slow load_13'
+    'After 1000 hrs: Fiber tear After Aging #1_14', 'After 1000 hrs: Fiber tear After Aging #2_15', 
+    'After 1000 hrs: Fast Load_16', 'After 1000 hrs: slow load_17'
 ]
 
 if all(column in data.columns for column in columns_needed):
@@ -115,22 +115,46 @@ if all(column in data.columns for column in columns_needed):
     # Display heatmap
     display_heatmap(ingredients, properties)
 
+    # Define train_model function
+    def train_model(X, y, model_choice):
+        from sklearn.linear_model import Ridge, Lasso, ElasticNet
+        from sklearn.neighbors import KNeighborsRegressor
+
+        if model_choice == "Ridge Regressor":
+            model = Ridge()
+        elif model_choice == "Lasso Regressor":
+            model = Lasso()
+        elif model_choice == "ElasticNet Regressor":
+            model = ElasticNet()
+        elif model_choice == "KNN Regressor":
+            model = KNeighborsRegressor()
+
+        model.fit(X, y)
+        return model
+
     # Prepare data for modeling
     X = data[['Ingredient A_1', 'Ingredient B_2', 'Ingredient C_3', 'Ingredient D_4']]
     y_initial_fiber_tear_1 = data['Initial: Fiber tear #1_6']
     y_initial_fiber_tear_2 = data['Initial: Fiber tear #2_7']
     y_initial_fast_load = data['Initial: Fast Load_8']
     y_initial_slow_load = data['Initial: slow load_9']
-    y_after_500_fiber_tear_1 = data['After 500 hrs: Fiber tear After Aging #1_10']
-    y_after_500_fiber_tear_2 = data['After 500 hrs: Fiber tear After Aging #2_11']
-    y_after_500_fast_load = data['After 500 hrs: Fast Load_12']
-    y_after_500_slow_load = data['After 500 hrs: slow load_13']
+    y_after_1000_fiber_tear_1 = data['After 1000 hrs: Fiber tear After Aging #1_14']
+    y_after_1000_fiber_tear_2 = data['After 1000 hrs: Fiber tear After Aging #2_15']
+    y_after_1000_fast_load = data['After 1000 hrs: Fast Load_16']
+    y_after_1000_slow_load = data['After 1000 hrs: slow load_17']
 
     # Model selection
     model_choice = st.selectbox("Choose a regression model", ["Ridge Regressor", "Lasso Regressor", "ElasticNet Regressor", "KNN Regressor"], key='model_choice')
 
-    models = train_models(X, y_initial_fiber_tear_1, y_initial_fiber_tear_2, y_initial_fast_load, y_initial_slow_load, y_after_500_fiber_tear_1, y_after_500_fiber_tear_2, y_after_500_fast_load, y_after_500_slow_load, model_choice)
-    model_initial_fiber_tear_1, model_initial_fiber_tear_2, model_initial_fast_load, model_initial_slow_load, model_after_500_fiber_tear_1, model_after_500_fiber_tear_2, model_after_500_fast_load, model_after_500_slow_load = models
+    # Train models for each target separately
+    model_initial_fiber_tear_1 = train_model(X, y_initial_fiber_tear_1, model_choice)
+    model_initial_fiber_tear_2 = train_model(X, y_initial_fiber_tear_2, model_choice)
+    model_initial_fast_load = train_model(X, y_initial_fast_load, model_choice)
+    model_initial_slow_load = train_model(X, y_initial_slow_load, model_choice)
+    model_after_1000_fiber_tear_1 = train_model(X, y_after_1000_fiber_tear_1, model_choice)
+    model_after_1000_fiber_tear_2 = train_model(X, y_after_1000_fiber_tear_2, model_choice)
+    model_after_1000_fast_load = train_model(X, y_after_1000_fast_load, model_choice)
+    model_after_1000_slow_load = train_model(X, y_after_1000_slow_load, model_choice)
 
     # Define prediction function
     def predict_properties(a, b, c, d):
@@ -139,29 +163,30 @@ if all(column in data.columns for column in columns_needed):
         initial_fiber_tear_2 = model_initial_fiber_tear_2.predict(input_data)[0]
         initial_fast_load = model_initial_fast_load.predict(input_data)[0]
         initial_slow_load = model_initial_slow_load.predict(input_data)[0]
-        after_500_fiber_tear_1 = model_after_500_fiber_tear_1.predict(input_data)[0]
-        after_500_fiber_tear_2 = model_after_500_fiber_tear_2.predict(input_data)[0]
-        after_500_fast_load = model_after_500_fast_load.predict(input_data)[0]
-        after_500_slow_load = model_after_500_slow_load.predict(input_data)[0]
+        after_1000_fiber_tear_1 = model_after_1000_fiber_tear_1.predict(input_data)[0]
+        after_1000_fiber_tear_2 = model_after_1000_fiber_tear_2.predict(input_data)[0]
+        after_1000_fast_load = model_after_1000_fast_load.predict(input_data)[0]
+        after_1000_slow_load = model_after_1000_slow_load.predict(input_data)[0]
+
         return (initial_fiber_tear_1, initial_fiber_tear_2, initial_fast_load, initial_slow_load, 
-                after_500_fiber_tear_1, after_500_fiber_tear_2, after_500_fast_load, after_500_slow_load)
+                after_1000_fiber_tear_1, after_1000_fiber_tear_2, after_1000_fast_load, after_1000_slow_load)
 
     # Predict properties
     initial_fiber_tear_1, initial_fiber_tear_2, initial_fast_load, initial_slow_load, \
-    after_500_fiber_tear_1, after_500_fiber_tear_2, after_500_fast_load, after_500_slow_load = predict_properties(component_a, component_b, component_c, component_d)
+    after_1000_fiber_tear_1, after_1000_fiber_tear_2, after_1000_fast_load, after_1000_slow_load = predict_properties(component_a, component_b, component_c, component_d)
 
     # Display predicted properties with gauge charts
     st.subheader("Predicted Properties", anchor='predicted_properties')
 
-    def create_gauge_chart(value, title, threshold, max_value, critical_value):
-        color = "darkgreen" if (critical_value <= value <= max_value) else "red"
+    def create_gauge_chart(value, title, min_value, max_value, critical_value):
+        color = "darkgreen" if (min_value <= value <= max_value) else "red"
         fig = go.Figure(go.Indicator(
             mode="gauge+number",
             value=value,
             number={'font': {'color': color}},
             title={'text': title},
             gauge={
-                'axis': {'range': [0, max_value]},
+                'axis': {'range': [min_value, max_value]},
                 'bar': {'color': color},
                 'steps': [],
                 'threshold': {
@@ -171,39 +196,35 @@ if all(column in data.columns for column in columns_needed):
                 }
             }
         ))
-        fig.update_layout(margin=dict(t=50, b=0, l=0, r=0), height=150)  # Adjust height here
+        fig.update_layout(margin=dict(t=0, b=0, l=0, r=0), height=150)  # Adjust height here
         return fig
 
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
     with col1:
-        st.plotly_chart(create_gauge_chart(initial_fiber_tear_1, "Initial Fiber Tear #1", 80, 100, 80), use_container_width=True, config={'displayModeBar': False})
+        st.plotly_chart(create_gauge_chart(initial_fiber_tear_1, "Initial Fiber Tear #1", 0, 150, 80), use_container_width=True, config={'displayModeBar': False})
     with col2:
-        st.plotly_chart(create_gauge_chart(after_500_fiber_tear_1, "Fiber Tear After 500 hrs #1", 80, 100, 80), use_container_width=True, config={'displayModeBar': False})
+        st.plotly_chart(create_gauge_chart(initial_fiber_tear_2, "Initial Fiber Tear #2", 0, 150, 80), use_container_width=True, config={'displayModeBar': False})
     with col3:
-        st.plotly_chart(create_gauge_chart(initial_fiber_tear_1, "Fiber Tear After 1000 hrs #1", 80, 100, 80), use_container_width=True, config={'displayModeBar': False})
-
-    col4, col5, col6 = st.columns(3)
+        st.plotly_chart(create_gauge_chart(initial_fast_load, "Initial Fast Load", 0, 5, 4.25), use_container_width=True, config={'displayModeBar': False})
     with col4:
-        st.plotly_chart(create_gauge_chart(initial_fiber_tear_2, "Initial Fiber Tear #2", 80, 100, 80), use_container_width=True, config={'displayModeBar': False})
-    with col5:
-        st.plotly_chart(create_gauge_chart(after_500_fiber_tear_2, "Fiber Tear After 500 hrs #2", 80, 100, 80), use_container_width=True, config={'displayModeBar': False})
-    with col6:
-        st.plotly_chart(create_gauge_chart(initial_fiber_tear_2, "Fiber Tear After 1000 hrs #2", 80, 100, 80), use_container_width=True, config={'displayModeBar': False})
+        st.plotly_chart(create_gauge_chart(initial_slow_load, "Initial Slow Load", 0, 5, 4.25), use_container_width=True, config={'displayModeBar': False})
 
-    col7, col8, col9 = st.columns(3)
+    col5, col6, col7, col8 = st.columns(4)
+    with col5:
+        st.plotly_chart(create_gauge_chart(after_1000_fiber_tear_1, "Fiber Tear After 1000 hrs #1", 0, 150, 80), use_container_width=True, config={'displayModeBar': False})
+    with col6:
+        st.plotly_chart(create_gauge_chart(after_1000_fiber_tear_2, "Fiber Tear After 1000 hrs #2", 0, 150, 80), use_container_width=True, config={'displayModeBar': False})
     with col7:
-        st.plotly_chart(create_gauge_chart(initial_fast_load, "Initial Fast Load", 4.25, 5, 4.25), use_container_width=True, config={'displayModeBar': False})
+        st.plotly_chart(create_gauge_chart(after_1000_fast_load, "Fast Load After 1000 hrs", 0, 5, 4), use_container_width=True, config={'displayModeBar': False})
     with col8:
-        st.plotly_chart(create_gauge_chart(after_500_fast_load, "Fast Load After 500 hrs", 4, 5, 4), use_container_width=True, config={'displayModeBar': False})
-    with col9:
-        st.plotly_chart(create_gauge_chart(initial_fast_load, "Fast Load After 1000 hrs", 4, 5, 4), use_container_width=True, config={'displayModeBar': False})
+        st.plotly_chart(create_gauge_chart(after_1000_slow_load, "Slow Load After 1000 hrs", 0, 5, 4), use_container_width=True, config={'displayModeBar': False})
 
     # Define optimization function
     def objective_function(x):
         a, b, c, d = x
         initial_fiber_tear_1, initial_fiber_tear_2, initial_fast_load, initial_slow_load, \
-        after_500_fiber_tear_1, after_500_fiber_tear_2, after_500_fast_load, after_500_slow_load = predict_properties(a, b, c, d)
-        return -(initial_fast_load + after_500_fast_load) + (initial_fiber_tear_1 + initial_fiber_tear_2 + after_500_fiber_tear_1 + after_500_fiber_tear_2)
+        after_1000_fiber_tear_1, after_1000_fiber_tear_2, after_1000_fast_load, after_1000_slow_load = predict_properties(a, b, c, d)
+        return -(initial_fast_load + after_1000_fast_load) + (initial_fiber_tear_1 + initial_fiber_tear_2 + after_1000_fiber_tear_1 + after_1000_fiber_tear_2)
 
     # Optimize composition
     if st.button("Optimize Composition", key='optimize_composition'):
