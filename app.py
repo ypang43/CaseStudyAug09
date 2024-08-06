@@ -111,14 +111,9 @@ if all(column in data.columns for column in columns_needed):
     # Prepare data for the heatmap
     ingredients = data[['Ingredient A_1', 'Ingredient B_2', 'Ingredient C_3', 'Ingredient D_4']]
     properties = data.drop(['Ingredient A_1', 'Ingredient B_2', 'Ingredient C_3', 'Ingredient D_4'], axis=1)
-    combined_df = pd.concat([ingredients.reset_index(drop=True), properties.reset_index(drop=True)], axis=1)
-
-    # Ensure only numeric data for correlation matrix
-    numeric_cols = combined_df.select_dtypes(include=[np.number]).columns.tolist()
-    combined_df[numeric_cols].fillna(combined_df[numeric_cols].mean(), inplace=True)
 
     # Display heatmap
-    display_heatmap(combined_df[numeric_cols])
+    display_heatmap(ingredients, properties)
 
     # Prepare data for modeling
     X = data[['Ingredient A_1', 'Ingredient B_2', 'Ingredient C_3', 'Ingredient D_4']]
