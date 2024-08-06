@@ -11,7 +11,7 @@ def display_heatmap(ingredients, properties):
     numeric_combined_df = combined_df.apply(pd.to_numeric, errors='coerce')
     numeric_combined_df = numeric_combined_df.fillna(numeric_combined_df.mean())
 
-    plt.figure(figsize=(12, 4))
+    plt.figure(figsize=(10, 5), dpi=2000)
     corr_matrix = numeric_combined_df.corr().loc[ingredients.columns, properties.columns]
     sns.heatmap(corr_matrix, annot=True, cmap='seismic', cbar_kws={'label': '(+) Positive (-) Negative Correlation'})
     

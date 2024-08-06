@@ -16,7 +16,7 @@ from experiment_booking import initialize_tasks, render_task_buttons, display_sc
 load_dotenv()
 
 # Set the OpenAI API key
-#openai.api_key = os.getenv("OPENAI_API_KEY")
+# openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # Define function to get LLM response
 def get_llm_response(prompt):
@@ -110,11 +110,20 @@ if all(column in data.columns for column in columns_needed):
 
     # Prepare data for the heatmap
     ingredients = data[['Ingredient A_1', 'Ingredient B_2', 'Ingredient C_3', 'Ingredient D_4']]
-    properties = data.drop(['Ingredient A_1', 'Ingredient B_2', 'Ingredient C_3', 'Ingredient D_4'], axis=1)
+    properties = data[[
+        'Initial: Fiber tear #1_6', 'Initial: Fiber tear #2_7', 'Initial: Fast Load_8', 'Initial: slow load_9',
+        'After 1000 hrs: Fiber tear After Aging #1_14', 'After 1000 hrs: Fiber tear After Aging #2_15', 
+        'After 1000 hrs: Fast Load_16', 'After 1000 hrs: slow load_17'
+    ]]
 
-    # Display heatmap
-    display_heatmap(ingredients, properties)
+    # Define two columns layout
+    col1, col2 = st.columns(2)
 
+    with col1:
+        # Display heatmap in the left column
+        display_heatmap(ingredients, properties)
+
+        
     # Define train_model function
     def train_model(X, y, model_choice):
         from sklearn.linear_model import Ridge, Lasso, ElasticNet
@@ -179,45 +188,43 @@ if all(column in data.columns for column in columns_needed):
     st.subheader("Predicted Properties", anchor='predicted_properties')
 
     def create_gauge_chart(value, title, min_value, max_value, critical_value, critical_label):
-        # Cap the value between min_value and max_value
-        value = min(max(value, min_value), max_value)
-        
-        # Determine gauge color based on whether the value is above or below the critical value
-        if title.startswith("Tear"):
-            color = "green" if value > critical_value else "red"
-        else:  # Load properties
-            color = "green" if value > critical_value else "red"
-        
-        fig = go.Figure(go.Indicator(
-            mode="gauge+number",
-            value=value,
-            number={'font': {'color': color}},
-            title={'text': title},
-            gauge={
-                'axis': {'range': [min_value, max_value]},
-                'bar': {'color': color},
-                'threshold': {
-                    'line': {'color': "red", 'width': 2},
-                    'thickness': 0.75,
-                    'value': critical_value
+            # Cap the value between min_value and max_value
+            value = min(max(value, min_value), max_value)
+            
+            # Determine gauge color based on whether the value is above or below the critical value
+            if title.startswith("Tear"):
+                color = "green" if value > critical_value else "red"
+            else:  # Load properties
+                color = "green" if value > critical_value else "red"
+            
+            fig = go.Figure(go.Indicator(
+                mode="gauge+number",
+                value=value,
+                number={'font': {'color': color}},
+                title={'text': title},
+                gauge={
+                    'axis': {'range': [min_value, max_value]},
+                    'bar': {'color': color},
+                    'threshold': {
+                        'line': {'color': "red", 'width': 2},
+                        'thickness': 0.75,
+                        'value': critical_value
+                    }
                 }
-            }
-        ))
-        
-        # Add the critical line label with bold text
-        fig.add_annotation(
-            x=0.5, y=0.1,
-            xref="paper", yref="paper",
-            text=f"<b>Critical: {critical_label}</b>",
-            showarrow=False,
-            font=dict(size=13, color="black"),
-            align="center"
-        )
-        
-        fig.update_layout(margin=dict(t=0, b=0, l=0, r=0), height=220)  # Adjust height here
-        return fig
-
-
+            ))
+            
+            # Add the critical line label with bold text
+            fig.add_annotation(
+                x=0.5, y=0.1,
+                xref="paper", yref="paper",
+                text=f"<b>Critical: {critical_label}</b>",
+                showarrow=False,
+                font=dict(size=13, color="black"),
+                align="center"
+            )
+            
+            fig.update_layout(margin=dict(t=0, b=0, l=0, r=0), height=220)  # Adjust height here
+            return fig
 
     # Define critical values and labels
     gauge_critical_values = {
@@ -264,6 +271,8 @@ if all(column in data.columns for column in columns_needed):
         initial_guess = [1.5, 1.5, 1.5, 1.5]
         result = minimize(objective_function, initial_guess, bounds=bounds)
         optimal_a, optimal_b, optimal_c, optimal_d = result.x
+        
+        # Ensure the results are formatted correctly
         st.markdown(
             f"<div class='gpt-response'>Optimal Composition: Ingredient A: {optimal_a:.2f}, Ingredient B: {optimal_b:.2f}, Ingredient C: {optimal_c:.2f}, Ingredient D: {optimal_d:.2f}</div>",
             unsafe_allow_html=True
@@ -288,6 +297,7 @@ if all(column in data.columns for column in columns_needed):
         df_full_factorial_design = create_full_factorial_design(optimal_a, optimal_b, optimal_c, optimal_d)
         st.markdown("<h2 class='virtual-assistant reduce-space'>Full Factorial Design</h2>", unsafe_allow_html=True)
         st.dataframe(df_full_factorial_design)
+
 
 # Initialize task list
 initialize_tasks()
