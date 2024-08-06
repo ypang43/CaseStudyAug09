@@ -16,7 +16,7 @@ from experiment_booking import initialize_tasks, render_task_buttons, display_sc
 load_dotenv()
 
 # Set the OpenAI API key
-openai.api_key = os.getenv("OPENAI_API_KEY")
+#openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # Define function to get LLM response
 def get_llm_response(prompt):
@@ -63,20 +63,20 @@ st.sidebar.markdown("<h2 class='sidebar-title reduce-space'>Adjust Formulation C
 # Define slider and input function
 def slider_and_input(label, default_value):
     col1, col2 = st.sidebar.columns([3, 1])
-    slider_value = col1.slider(label, 0.0, 3.0, default_value, step=0.01)
-    input_value = col2.number_input(label, 0.0, 3.0, slider_value, step=0.01)
+    slider_value = col1.slider(label, 0.0, 10.0, default_value, step=0.01)
+    input_value = col2.number_input(label, 0.0, 10.0, slider_value, step=0.01)
     return max(slider_value, input_value)
 
 # Component sliders
-component_a = slider_and_input("Ingredient A", 1.5)
-component_b = slider_and_input("Ingredient B", 1.5)
-component_c = slider_and_input("Ingredient C", 1.5)
-component_d = slider_and_input("Ingredient D", 1.5)
+component_a = slider_and_input("Ingredient A", 2.0)
+component_b = slider_and_input("Ingredient B", 2.0)
+component_c = slider_and_input("Ingredient C", 2.0)
+component_d = slider_and_input("Ingredient D", 2.0)
 
 total_components = component_a + component_b + component_c + component_d
-remaining_percentage = 12 - total_components
+remaining_percentage = 100.0 - total_components
 
-if total_components > 12:
+if total_components > 40.0:
     st.sidebar.error("Total composition should not exceed 12. Adjust the components.")
 else:
     st.sidebar.write(f"Remaining percentage for other ingredients: {remaining_percentage:.2f}%")
@@ -178,8 +178,16 @@ if all(column in data.columns for column in columns_needed):
     # Display predicted properties with gauge charts
     st.subheader("Predicted Properties", anchor='predicted_properties')
 
-    def create_gauge_chart(value, title, min_value, max_value, critical_value):
-        color = "darkgreen" if (min_value <= value <= max_value) else "red"
+    def create_gauge_chart(value, title, min_value, max_value, critical_value, critical_label):
+        # Cap the value between min_value and max_value
+        value = min(max(value, min_value), max_value)
+        
+        # Determine gauge color based on whether the value is above or below the critical value
+        if title.startswith("Tear"):
+            color = "green" if value > critical_value else "red"
+        else:  # Load properties
+            color = "green" if value > critical_value else "red"
+        
         fig = go.Figure(go.Indicator(
             mode="gauge+number",
             value=value,
@@ -188,7 +196,6 @@ if all(column in data.columns for column in columns_needed):
             gauge={
                 'axis': {'range': [min_value, max_value]},
                 'bar': {'color': color},
-                'steps': [],
                 'threshold': {
                     'line': {'color': "red", 'width': 2},
                     'thickness': 0.75,
@@ -196,28 +203,53 @@ if all(column in data.columns for column in columns_needed):
                 }
             }
         ))
-        fig.update_layout(margin=dict(t=0, b=0, l=0, r=0), height=150)  # Adjust height here
+        
+        # Add the critical line label with bold text
+        fig.add_annotation(
+            x=0.5, y=0.1,
+            xref="paper", yref="paper",
+            text=f"<b>Critical: {critical_label}</b>",
+            showarrow=False,
+            font=dict(size=13, color="black"),
+            align="center"
+        )
+        
+        fig.update_layout(margin=dict(t=0, b=0, l=0, r=0), height=220)  # Adjust height here
         return fig
+
+
+
+    # Define critical values and labels
+    gauge_critical_values = {
+        "Initial Fiber Tear #1": 80,
+        "Initial Fiber Tear #2": 80,
+        "Initial Fast Load": 4.5,
+        "Initial Slow Load": 5,
+        "Fiber Tear After 1000 hrs #1": 80,
+        "Fiber Tear After 1000 hrs #2": 80,
+        "Fast Load After 1000 hrs": 4.25,
+        "Slow Load After 1000 hrs": 5
+    }
 
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        st.plotly_chart(create_gauge_chart(initial_fiber_tear_1, "Initial Fiber Tear #1", 0, 150, 80), use_container_width=True, config={'displayModeBar': False})
+        st.plotly_chart(create_gauge_chart(initial_fiber_tear_1, "Initial Fiber Tear #1", 0, 100, gauge_critical_values["Initial Fiber Tear #1"], "Critical: 80"), use_container_width=True, config={'displayModeBar': False})
     with col2:
-        st.plotly_chart(create_gauge_chart(initial_fiber_tear_2, "Initial Fiber Tear #2", 0, 150, 80), use_container_width=True, config={'displayModeBar': False})
+        st.plotly_chart(create_gauge_chart(initial_fiber_tear_2, "Initial Fiber Tear #2", 0, 100, gauge_critical_values["Initial Fiber Tear #2"], "Critical: 80"), use_container_width=True, config={'displayModeBar': False})
     with col3:
-        st.plotly_chart(create_gauge_chart(initial_fast_load, "Initial Fast Load", 0, 5, 4.25), use_container_width=True, config={'displayModeBar': False})
+        st.plotly_chart(create_gauge_chart(initial_fast_load, "Initial Fast Load", 0, 6, gauge_critical_values["Initial Fast Load"], "Critical: 4.5"), use_container_width=True, config={'displayModeBar': False})
     with col4:
-        st.plotly_chart(create_gauge_chart(initial_slow_load, "Initial Slow Load", 0, 5, 4.25), use_container_width=True, config={'displayModeBar': False})
+        st.plotly_chart(create_gauge_chart(initial_slow_load, "Initial Slow Load", 0, 6, gauge_critical_values["Initial Slow Load"], "Critical: 5"), use_container_width=True, config={'displayModeBar': False})
 
     col5, col6, col7, col8 = st.columns(4)
     with col5:
-        st.plotly_chart(create_gauge_chart(after_1000_fiber_tear_1, "Fiber Tear After 1000 hrs #1", 0, 150, 80), use_container_width=True, config={'displayModeBar': False})
+        st.plotly_chart(create_gauge_chart(after_1000_fiber_tear_1, "Fiber Tear After 1000 hrs #1", 0, 100, gauge_critical_values["Fiber Tear After 1000 hrs #1"], "Critical: 80"), use_container_width=True, config={'displayModeBar': False})
     with col6:
-        st.plotly_chart(create_gauge_chart(after_1000_fiber_tear_2, "Fiber Tear After 1000 hrs #2", 0, 150, 80), use_container_width=True, config={'displayModeBar': False})
+        st.plotly_chart(create_gauge_chart(after_1000_fiber_tear_2, "Fiber Tear After 1000 hrs #2", 0, 100, gauge_critical_values["Fiber Tear After 1000 hrs #2"], "Critical: 80"), use_container_width=True, config={'displayModeBar': False})
     with col7:
-        st.plotly_chart(create_gauge_chart(after_1000_fast_load, "Fast Load After 1000 hrs", 0, 5, 4), use_container_width=True, config={'displayModeBar': False})
+        st.plotly_chart(create_gauge_chart(after_1000_fast_load, "Fast Load After 1000 hrs", 0, 6, gauge_critical_values["Fast Load After 1000 hrs"], "Critical: 4.25"), use_container_width=True, config={'displayModeBar': False})
     with col8:
-        st.plotly_chart(create_gauge_chart(after_1000_slow_load, "Slow Load After 1000 hrs", 0, 5, 4), use_container_width=True, config={'displayModeBar': False})
+        st.plotly_chart(create_gauge_chart(after_1000_slow_load, "Slow Load After 1000 hrs", 0, 6, gauge_critical_values["Slow Load After 1000 hrs"], "Critical: 5"), use_container_width=True, config={'displayModeBar': False})
 
     # Define optimization function
     def objective_function(x):
