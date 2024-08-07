@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import plotly.express as px
 import plotly.graph_objects as go
 from sklearn.impute import SimpleImputer
 from scipy.optimize import minimize
@@ -11,12 +10,13 @@ import os
 from heatmap import display_heatmap
 from doe import create_full_factorial_design
 from experiment_booking import initialize_tasks, render_task_buttons, display_schedule
+import regression_plane
 
 # Load environment variables
 load_dotenv()
 
 # Set the OpenAI API key
-# openai.api_key = os.getenv("OPENAI_API_KEY")
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # Define function to get LLM response
 def get_llm_response(prompt):
@@ -188,43 +188,43 @@ if all(column in data.columns for column in columns_needed):
     st.subheader("Predicted Properties", anchor='predicted_properties')
 
     def create_gauge_chart(value, title, min_value, max_value, critical_value, critical_label):
-            # Cap the value between min_value and max_value
-            value = min(max(value, min_value), max_value)
-            
-            # Determine gauge color based on whether the value is above or below the critical value
-            if title.startswith("Tear"):
-                color = "green" if value > critical_value else "red"
-            else:  # Load properties
-                color = "green" if value > critical_value else "red"
-            
-            fig = go.Figure(go.Indicator(
-                mode="gauge+number",
-                value=value,
-                number={'font': {'color': color}},
-                title={'text': title},
-                gauge={
-                    'axis': {'range': [min_value, max_value]},
-                    'bar': {'color': color},
-                    'threshold': {
-                        'line': {'color': "red", 'width': 2},
-                        'thickness': 0.75,
-                        'value': critical_value
-                    }
+        # Cap the value between min_value and max_value
+        value = min(max(value, min_value), max_value)
+        
+        # Determine gauge color based on whether the value is above or below the critical value
+        if title.startswith("Tear"):
+            color = "green" if value > critical_value else "red"
+        else:  # Load properties
+            color = "green" if value > critical_value else "red"
+        
+        fig = go.Figure(go.Indicator(
+            mode="gauge+number",
+            value=value,
+            number={'font': {'color': color}},
+            title={'text': title},
+            gauge={
+                'axis': {'range': [min_value, max_value]},
+                'bar': {'color': color},
+                'threshold': {
+                    'line': {'color': "red", 'width': 2},
+                    'thickness': 0.75,
+                    'value': critical_value
                 }
-            ))
-            
-            # Add the critical line label with bold text
-            fig.add_annotation(
-                x=0.5, y=0.1,
-                xref="paper", yref="paper",
-                text=f"<b>Critical: {critical_label}</b>",
-                showarrow=False,
-                font=dict(size=13, color="black"),
-                align="center"
-            )
-            
-            fig.update_layout(margin=dict(t=0, b=0, l=0, r=0), height=220)  # Adjust height here
-            return fig
+            }
+        ))
+        
+        # Add the critical line label with bold text
+        fig.add_annotation(
+            x=0.5, y=0.1,
+            xref="paper", yref="paper",
+            text=f"<b>Critical: {critical_label}</b>",
+            showarrow=False,
+            font=dict(size=13, color="black"),
+            align="center"
+        )
+        
+        fig.update_layout(margin=dict(t=0, b=0, l=0, r=0), height=220)  # Adjust height here
+        return fig
 
     # Define critical values and labels
     gauge_critical_values = {
@@ -288,16 +288,14 @@ if all(column in data.columns for column in columns_needed):
         )
 
         # Highlight the location of the solution in the latent space
-        latent_space = pd.DataFrame(np.random.rand(100, 3), columns=['X', 'Y', 'Z'])  # Dummy latent space data
-        optimal_location_fig = px.scatter_3d(latent_space, x='X', y='Y', z='Z', title="Latent Space with Optimal Solution")
-        optimal_location_fig.add_trace(go.Scatter3d(x=[optimal_a], y=[optimal_b], z=[optimal_c], mode='markers', marker=dict(size=5, color='red')))
-        st.plotly_chart(optimal_location_fig, use_container_width=True)
+        optimal_point = [optimal_a, optimal_b, optimal_c, optimal_d]
+        fig = regression_plane.train_and_plot_regression_plane('Data.xlsx', optimal_point)
+        st.plotly_chart(fig, use_container_width=True)
 
         # Generate full factorial design
         df_full_factorial_design = create_full_factorial_design(optimal_a, optimal_b, optimal_c, optimal_d)
         st.markdown("<h2 class='virtual-assistant reduce-space'>Full Factorial Design</h2>", unsafe_allow_html=True)
         st.dataframe(df_full_factorial_design)
-
 
 # Initialize task list
 initialize_tasks()
