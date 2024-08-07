@@ -10,7 +10,7 @@ import os
 from heatmap import display_heatmap
 from doe import create_full_factorial_design
 from experiment_booking import initialize_tasks, render_task_buttons, display_schedule
-import regression_plane
+import Manifold
 
 # Load environment variables
 load_dotenv()
@@ -77,7 +77,7 @@ total_components = component_a + component_b + component_c + component_d
 remaining_percentage = 100.0 - total_components
 
 if total_components > 40.0:
-    st.sidebar.error("Total composition should not exceed 12. Adjust the components.")
+    st.sidebar.error("Total composition should not exceed 40. Adjust the components.")
 else:
     st.sidebar.write(f"Remaining percentage for other ingredients: {remaining_percentage:.2f}%")
 
@@ -307,7 +307,7 @@ if all(column in data.columns for column in columns_needed):
 
         # Highlight the location of the solution in the latent space
         optimal_point = [optimal_a, optimal_b, optimal_c, optimal_d]
-        fig = regression_plane.train_and_plot_regression_plane('Data.xlsx', optimal_point)
+        fig = Manifold.train_and_plot_regression_plane('Data.xlsx', optimal_point)
         st.plotly_chart(fig, use_container_width=True)
 
         # Generate full factorial design
@@ -319,6 +319,7 @@ if all(column in data.columns for column in columns_needed):
 initialize_tasks()
 
 # Render task buttons
+
 render_task_buttons()
 
 # Display schedule
