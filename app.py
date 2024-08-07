@@ -123,8 +123,19 @@ if all(column in data.columns for column in columns_needed):
 
     with col1:
         # Display heatmap in the left column
-        display_heatmap(ingredients, properties)
+        st.image("heatmap_ppt.png", caption="Single Ingredient Correlation", use_column_width=True)
+    with col2:
+        st.image("diff_heatmap_ppt.png", caption="Ingredient Pair Correlation", use_column_width=True)
+        # Add images below the heatmap
+    
+    st.subheader("Composition Optimization Guide")   
+    col3, col4 = st.columns(2)   
 
+    with col3:
+        st.image("radar_plots_single_2x1.png", caption="Single Ingredient Tuning Guide", use_column_width=True)
+
+    with col4:
+        st.image("radar_plots_pairs_2x1.png",caption="Ingredient Pair Tuning Guide",  use_column_width=True)    
         
     # Define train_model function
     def train_model(X, y, model_choice):
