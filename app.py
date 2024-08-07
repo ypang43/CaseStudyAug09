@@ -17,8 +17,8 @@ from create_gantt import create_gantt_chart
 # Load environment variables
 load_dotenv()
 
-# Set the OpenAI API key
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# Set the OpenAI API key from Streamlit secrets
+openai.api_key = st.secrets["openai"]["api_key"]
 
 # Define function to get LLM response
 def get_llm_response(prompt):
