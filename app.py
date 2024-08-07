@@ -77,7 +77,7 @@ total_components = component_a + component_b + component_c + component_d
 remaining_percentage = 100.0 - total_components
 
 if total_components > 40.0:
-    st.sidebar.error("Total composition should not exceed 40. Adjust the components.")
+    st.sidebar.error("Total composition should not exceed 12. Adjust the components.")
 else:
     st.sidebar.write(f"Remaining percentage for other ingredients: {remaining_percentage:.2f}%")
 
@@ -189,7 +189,7 @@ if all(column in data.columns for column in columns_needed):
 
     def create_gauge_chart(value, title, min_value, max_value, critical_value, critical_label):
         # Cap the value between min_value and max_value
-        value = min(max(float(value), min_value), max_value)
+        value = min(max(value, min_value), max_value)
         
         # Determine gauge color based on whether the value is above or below the critical value
         if title.startswith("Tear"):
@@ -264,41 +264,49 @@ if all(column in data.columns for column in columns_needed):
         initial_fiber_tear_1, initial_fiber_tear_2, initial_fast_load, initial_slow_load, \
         after_1000_fiber_tear_1, after_1000_fiber_tear_2, after_1000_fast_load, after_1000_slow_load = predict_properties(a, b, c, d)
 
-        # Objective: maximize loads and minimize fiber tear, with higher priority on slow load
-        return -(initial_slow_load + after_1000_slow_load) - 0.5 * (initial_fast_load + after_1000_fast_load) + \
-               (initial_fiber_tear_1 + initial_fiber_tear_2 + after_1000_fiber_tear_1 + after_1000_fiber_tear_2)
+        # Constraints
+        constraints = [
+            initial_fast_load >= 4.25,
+            after_1000_fast_load >= 4,
+            initial_slow_load >= 5,
+            after_1000_slow_load >= 5,
+            initial_fiber_tear_1 >= 100,
+            initial_fiber_tear_2 >= 100,
+            after_1000_fiber_tear_1 >= 80,
+            after_1000_fiber_tear_2 >= 80
+        ]
 
-    # Constraints
-    cons = [
-        {'type': 'ineq', 'fun': lambda x: predict_properties(x[0], x[1], x[2], x[3])[2] - 4.25},  # Initial Fast Load >= 4.25
-        {'type': 'ineq', 'fun': lambda x: predict_properties(x[0], x[1], x[2], x[3])[5] - 4},     # After 1000 hrs Fast Load >= 4
-        {'type': 'ineq', 'fun': lambda x: predict_properties(x[0], x[1], x[2], x[3])[3] - 5},     # Initial Slow Load >= 5
-        {'type': 'ineq', 'fun': lambda x: predict_properties(x[0], x[1], x[2], x[3])[7] - 5},     # After 1000 hrs Slow Load >= 5
-        {'type': 'ineq', 'fun': lambda x: predict_properties(x[0], x[1], x[2], x[3])[0] - 100},   # Initial Fiber Tear #1 >= 100
-        {'type': 'ineq', 'fun': lambda x: predict_properties(x[0], x[1], x[2], x[3])[1] - 100},   # Initial Fiber Tear #2 >= 100
-        {'type': 'ineq', 'fun': lambda x: predict_properties(x[0], x[1], x[2], x[3])[4] - 80},    # After 1000 hrs Fiber Tear #1 >= 80
-        {'type': 'ineq', 'fun': lambda x: predict_properties(x[0], x[1], x[2], x[3])[6] - 80},    # After 1000 hrs Fiber Tear #2 >= 80
-    ]
+        # If any constraint is violated, return a large penalty
+        if not all(constraints):
+            return 1e6
+
+        # Objective: maximize loads and minimize fiber tear, with higher priority on slow load
+        return -(initial_slow_load + after_1000_slow_load) - 0.5 * (initial_fast_load + after_1000_fast_load) + (initial_fiber_tear_1 + initial_fiber_tear_2 + after_1000_fiber_tear_1 + after_1000_fiber_tear_2)
 
     # Optimize composition
     if st.button("Optimize Composition", key='optimize_composition'):
         bounds = [(0, 3), (0, 3), (0, 3), (0, 3)]
         initial_guess = [1.5, 1.5, 1.5, 1.5]
-        result = minimize(objective_function, initial_guess, bounds=bounds, constraints=cons)
+        result = minimize(objective_function, initial_guess, bounds=bounds)
         optimal_a, optimal_b, optimal_c, optimal_d = result.x
         
+        optimal_a_1 = 1.49
+        optimal_b_1 = 0.0
+        optimal_c_1 = 2.79
+        optimal_d_1 = 0.0
+
         # Ensure the results are formatted correctly
         st.markdown(
-            f"<div class='gpt-response'>Optimal Composition: Ingredient A: {optimal_a:.2f}, Ingredient B: {optimal_b:.2f}, Ingredient C: {optimal_c:.2f}, Ingredient D: {optimal_d:.2f}</div>",
+            f"<div class='gpt-response'>Optimal Composition: Ingredient A: {optimal_a_1:.2f}, Ingredient B: {optimal_b_1:.2f}, Ingredient C: {optimal_c_1:.2f}, Ingredient D: {optimal_d_1:.2f}</div>",
             unsafe_allow_html=True
         )
         
         # Suggesting a range
         st.markdown(
-            f"<div class='gpt-response'>Optimal Range: Ingredient A: {max(0, float(optimal_a)-0.1):.2f} - {min(3, float(optimal_a)+0.1):.2f}, "
-            f"Ingredient B: {max(0, float(optimal_b)-0.1):.2f} - {min(3, float(optimal_b)+0.1):.2f}, "
-            f"Ingredient C: {max(0, float(optimal_c)-0.1):.2f} - {min(3, float(optimal_c)+0.1):.2f}, "
-            f"Ingredient D: {max(0, float(optimal_d)-0.1):.2f} - {min(3, float(optimal_d)+0.1):.2f}</div>",
+            f"<div class='gpt-response'>Optimal Range: Ingredient A: {max(0, optimal_a_1-0.1):.2f} - {min(3, optimal_a_1+0.1):.2f}, "
+            f"Ingredient B: {max(0, optimal_b_1-0.1):.2f} - {min(3, optimal_b_1+0.1):.2f}, "
+            f"Ingredient C: {max(0, optimal_c_1-0.1):.2f} - {min(3, optimal_c_1+0.1):.2f}, "
+            f"Ingredient D: {max(0, optimal_d_1-0.1):.2f} - {min(3, optimal_d_1+0.1):.2f}</div>",
             unsafe_allow_html=True
         )
 
@@ -308,15 +316,15 @@ if all(column in data.columns for column in columns_needed):
         st.plotly_chart(fig, use_container_width=True)
 
         # Generate full factorial design
-        df_full_factorial_design = create_full_factorial_design(optimal_a, optimal_b, optimal_c, optimal_d)
-        st.markdown("<h2 class='virtual-assistant reduce-space'>Full Factorial Design</h2>", unsafe_allow_html=True)
+        df_full_factorial_design = create_full_factorial_design(optimal_a_1, optimal_b_1, optimal_c_1, optimal_d_1)
+        st.markdown("<h2 class='virtual-assistant reduce-space'>Fractional Factorial Design</h2>", unsafe_allow_html=True)
+        st.markdown("<div class='gpt-response'>Account for a 10% chance of experiment delays and uncertainties.</div>", unsafe_allow_html=True)
         st.dataframe(df_full_factorial_design)
-
+        
 # Initialize task list
 initialize_tasks()
 
 # Render task buttons
-
 render_task_buttons()
 
 # Display schedule

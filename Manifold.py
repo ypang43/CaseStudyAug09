@@ -66,18 +66,35 @@ def plot_regression_manifold(xx, yy, zz, predicted, ingredients_pca, properties_
     fig = go.Figure(data=[go.Surface(x=xx[:, :, 0], y=yy[:, :, 0], z=predicted[:, :, 0], colorscale='Jet', opacity=0.8)])
 
     # Add scatter plot of actual data points
-    fig.add_trace(go.Scatter3d(x=ingredients_pca[:, 0], y=ingredients_pca[:, 1], z=properties_scaled[:, 0], mode='markers', marker=dict(size=5, color='red'), name='Data points'))
+    fig.add_trace(go.Scatter3d(x=ingredients_pca[:, 0], y=ingredients_pca[:, 1], z=properties_scaled[:, 0], mode='markers', marker=dict(size=5, color='blue'), name='Samples'))
 
     # Highlight the optimal point
-    fig.add_trace(go.Scatter3d(x=[optimal_point_pca[0]], y=[optimal_point_pca[1]], z=[optimal_point_pca[2]], mode='markers', marker=dict(size=10, color='blue'), name='Optimal Point'))
+    fig.add_trace(go.Scatter3d(x=[optimal_point_pca[0]], y=[optimal_point_pca[1]], z=[optimal_point_pca[2]], mode='markers', marker=dict(size=10, color='red'), name='Global Optimum'))
 
-    fig.update_layout(scene=dict(
-        xaxis_title='PCA Component 1',
-        yaxis_title='PCA Component 2',
-        zaxis_title='Target Function'
-    ), title='3D Manifold of Solution Space with Interaction Terms')
+    # Add arrow annotation pointing to the optimal point
+    fig.add_trace(go.Cone(x=[optimal_point_pca[0]], y=[optimal_point_pca[1]], z=[optimal_point_pca[2] + 1],
+                          u=[0], v=[0], w=[-0.5], anchor="tail", sizemode="absolute", sizeref=0.3,
+                          showscale=False, name="Global Optimum"))
+
+    fig.update_layout(
+        scene=dict(
+            xaxis_title='PCA Component 1',
+            yaxis_title='PCA Component 2',
+            zaxis_title='Target Function'
+        ),
+        title='<span style="color: #2c3e50;">3D Manifold of Solution Space with Interaction Terms</span>',
+        legend=dict(
+            itemsizing='constant',
+            font=dict(size=12),
+            x=0.9,
+            y=0.5,
+            bgcolor="rgba(255, 255, 255, 0.5)"
+        )
+    )
 
     return fig
+
+
 
 def train_and_plot_regression_plane(file_path, optimal_point):
     ingredients, properties = load_and_prepare_data(file_path)
