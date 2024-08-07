@@ -263,7 +263,25 @@ if all(column in data.columns for column in columns_needed):
         a, b, c, d = x
         initial_fiber_tear_1, initial_fiber_tear_2, initial_fast_load, initial_slow_load, \
         after_1000_fiber_tear_1, after_1000_fiber_tear_2, after_1000_fast_load, after_1000_slow_load = predict_properties(a, b, c, d)
-        return -(initial_fast_load + after_1000_fast_load) + (initial_fiber_tear_1 + initial_fiber_tear_2 + after_1000_fiber_tear_1 + after_1000_fiber_tear_2)
+
+        # Constraints
+        constraints = [
+            initial_fast_load >= 4.25,
+            after_1000_fast_load >= 4,
+            initial_slow_load >= 5,
+            after_1000_slow_load >= 5,
+            initial_fiber_tear_1 >= 100,
+            initial_fiber_tear_2 >= 100,
+            after_1000_fiber_tear_1 >= 80,
+            after_1000_fiber_tear_2 >= 80
+        ]
+
+        # If any constraint is violated, return a large penalty
+        if not all(constraints):
+            return 1e6
+
+        # Objective: maximize loads and minimize fiber tear, with higher priority on slow load
+        return -(initial_slow_load + after_1000_slow_load) - 0.5 * (initial_fast_load + after_1000_fast_load) + (initial_fiber_tear_1 + initial_fiber_tear_2 + after_1000_fiber_tear_1 + after_1000_fiber_tear_2)
 
     # Optimize composition
     if st.button("Optimize Composition", key='optimize_composition'):
