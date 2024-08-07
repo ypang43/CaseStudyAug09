@@ -11,6 +11,8 @@ from heatmap import display_heatmap
 from doe import create_full_factorial_design
 from experiment_booking import initialize_tasks, render_task_buttons, display_schedule
 import Manifold
+from datetime import datetime  
+from create_gantt import create_gantt_chart
 
 # Load environment variables
 load_dotenv()
@@ -320,7 +322,19 @@ if all(column in data.columns for column in columns_needed):
         st.markdown("<h2 class='virtual-assistant reduce-space'>Fractional Factorial Design</h2>", unsafe_allow_html=True)
         st.markdown("<div class='gpt-response'>Account for a 10% chance of experiment delays and uncertainties.</div>", unsafe_allow_html=True)
         st.dataframe(df_full_factorial_design)
-        
+
+        # After generating the full factorial design dataframe
+
+        # Display the Gantt chart
+        st.markdown("<h2 class='virtual-assistant reduce-space'>Fractional Factorial Design</h2>", unsafe_allow_html=True)
+        st.markdown("<div class='gpt-response'>Account for a 10% chance of experiment delays and uncertainties.</div>", unsafe_allow_html=True)
+        st.dataframe(df_full_factorial_design)
+
+        # Create and display Gantt chart
+        start_date = datetime.now()
+        fig_gantt = create_gantt_chart(df_full_factorial_design, start_date)
+        st.plotly_chart(fig_gantt, use_container_width=True)
+
 # Initialize task list
 initialize_tasks()
 
