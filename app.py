@@ -189,7 +189,7 @@ if all(column in data.columns for column in columns_needed):
 
     def create_gauge_chart(value, title, min_value, max_value, critical_value, critical_label):
         # Cap the value between min_value and max_value
-        value = min(max(value, min_value), max_value)
+        value = min(max(float(value), min_value), max_value)
         
         # Determine gauge color based on whether the value is above or below the critical value
         if title.startswith("Tear"):
@@ -264,30 +264,27 @@ if all(column in data.columns for column in columns_needed):
         initial_fiber_tear_1, initial_fiber_tear_2, initial_fast_load, initial_slow_load, \
         after_1000_fiber_tear_1, after_1000_fiber_tear_2, after_1000_fast_load, after_1000_slow_load = predict_properties(a, b, c, d)
 
-        # Constraints
-        constraints = [
-            initial_fast_load >= 4.25,
-            after_1000_fast_load >= 4,
-            initial_slow_load >= 5,
-            after_1000_slow_load >= 5,
-            initial_fiber_tear_1 >= 100,
-            initial_fiber_tear_2 >= 100,
-            after_1000_fiber_tear_1 >= 80,
-            after_1000_fiber_tear_2 >= 80
-        ]
-
-        # If any constraint is violated, return a large penalty
-        if not all(constraints):
-            return 1e6
-
         # Objective: maximize loads and minimize fiber tear, with higher priority on slow load
-        return -(initial_slow_load + after_1000_slow_load) - 0.5 * (initial_fast_load + after_1000_fast_load) + (initial_fiber_tear_1 + initial_fiber_tear_2 + after_1000_fiber_tear_1 + after_1000_fiber_tear_2)
+        return -(initial_slow_load + after_1000_slow_load) - 0.5 * (initial_fast_load + after_1000_fast_load) + \
+               (initial_fiber_tear_1 + initial_fiber_tear_2 + after_1000_fiber_tear_1 + after_1000_fiber_tear_2)
+
+    # Constraints
+    cons = [
+        {'type': 'ineq', 'fun': lambda x: predict_properties(x[0], x[1], x[2], x[3])[2] - 4.25},  # Initial Fast Load >= 4.25
+        {'type': 'ineq', 'fun': lambda x: predict_properties(x[0], x[1], x[2], x[3])[5] - 4},     # After 1000 hrs Fast Load >= 4
+        {'type': 'ineq', 'fun': lambda x: predict_properties(x[0], x[1], x[2], x[3])[3] - 5},     # Initial Slow Load >= 5
+        {'type': 'ineq', 'fun': lambda x: predict_properties(x[0], x[1], x[2], x[3])[7] - 5},     # After 1000 hrs Slow Load >= 5
+        {'type': 'ineq', 'fun': lambda x: predict_properties(x[0], x[1], x[2], x[3])[0] - 100},   # Initial Fiber Tear #1 >= 100
+        {'type': 'ineq', 'fun': lambda x: predict_properties(x[0], x[1], x[2], x[3])[1] - 100},   # Initial Fiber Tear #2 >= 100
+        {'type': 'ineq', 'fun': lambda x: predict_properties(x[0], x[1], x[2], x[3])[4] - 80},    # After 1000 hrs Fiber Tear #1 >= 80
+        {'type': 'ineq', 'fun': lambda x: predict_properties(x[0], x[1], x[2], x[3])[6] - 80},    # After 1000 hrs Fiber Tear #2 >= 80
+    ]
 
     # Optimize composition
     if st.button("Optimize Composition", key='optimize_composition'):
         bounds = [(0, 3), (0, 3), (0, 3), (0, 3)]
         initial_guess = [1.5, 1.5, 1.5, 1.5]
-        result = minimize(objective_function, initial_guess, bounds=bounds)
+        result = minimize(objective_function, initial_guess, bounds=bounds, constraints=cons)
         optimal_a, optimal_b, optimal_c, optimal_d = result.x
         
         # Ensure the results are formatted correctly
@@ -298,10 +295,10 @@ if all(column in data.columns for column in columns_needed):
         
         # Suggesting a range
         st.markdown(
-            f"<div class='gpt-response'>Optimal Range: Ingredient A: {max(0, optimal_a-0.1):.2f} - {min(3, optimal_a+0.1):.2f}, "
-            f"Ingredient B: {max(0, optimal_b-0.1):.2f} - {min(3, optimal_b+0.1):.2f}, "
-            f"Ingredient C: {max(0, optimal_c-0.1):.2f} - {min(3, optimal_c+0.1):.2f}, "
-            f"Ingredient D: {max(0, optimal_d-0.1):.2f} - {min(3, optimal_d+0.1):.2f}</div>",
+            f"<div class='gpt-response'>Optimal Range: Ingredient A: {max(0, float(optimal_a)-0.1):.2f} - {min(3, float(optimal_a)+0.1):.2f}, "
+            f"Ingredient B: {max(0, float(optimal_b)-0.1):.2f} - {min(3, float(optimal_b)+0.1):.2f}, "
+            f"Ingredient C: {max(0, float(optimal_c)-0.1):.2f} - {min(3, float(optimal_c)+0.1):.2f}, "
+            f"Ingredient D: {max(0, float(optimal_d)-0.1):.2f} - {min(3, float(optimal_d)+0.1):.2f}</div>",
             unsafe_allow_html=True
         )
 
