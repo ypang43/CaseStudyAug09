@@ -30,7 +30,7 @@ def get_llm_response(prompt):
     return response.choices[0].message['content'].strip()
 
 # Set Streamlit page configuration
-st.set_page_config(page_title="Adhesive Technology Predictor Tool", layout="wide")
+st.set_page_config(page_title="Adhesive Technology Predictor Toolbox", layout="wide")
 
 # Load CSS from file
 def load_css(file_name):
@@ -45,13 +45,13 @@ st.sidebar.image("HenkelLogo.png", use_column_width=True)
 st.markdown(
     """
     <div class="title">
-        Adhesive Technology Predictor Tool
+        Adhesive Technology Predictor Toolbox
     </div>
     """,
     unsafe_allow_html=True
 )
 
-st.markdown("<h2 class='virtual-assistant reduce-space'>Hi! I Am Your Virtual Henkel Assistant</h2>", unsafe_allow_html=True)
+st.markdown("<h2 class='virtual-assistant reduce-space'>Hi! I Am Your Henkel AI Assistant</h2>", unsafe_allow_html=True)
 
 # LLM Response section
 user_input = st.text_input("Ask a question about adhesive technology:", key='user_input')
