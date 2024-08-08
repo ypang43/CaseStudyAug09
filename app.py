@@ -33,10 +33,21 @@ def get_llm_response(prompt):
 st.set_page_config(page_title="Adhesive Technology Predictor Toolbox", layout="wide")
 
 # Load CSS from file
+# Load CSS from file
 def load_css(file_name):
     with open(file_name) as f:
         st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
 
+# Custom CSS to hide Streamlit branding and GitHub link
+hide_streamlit_style = """
+<style>
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+</style>
+"""
+
+# Apply the custom CSS
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 load_css("styles.css")
 
 # Use st.image to display the logo
@@ -303,9 +314,9 @@ if all(column in data.columns for column in columns_needed):
         result = minimize(objective_function, initial_guess, bounds=bounds)
         optimal_a, optimal_b, optimal_c, optimal_d = result.x
         
-        optimal_a_1 = 1.49
+        optimal_a_1 = 2.93
         optimal_b_1 = 0.0
-        optimal_c_1 = 2.79
+        optimal_c_1 = 2.69
         optimal_d_1 = 0.0
 
         # Ensure the results are formatted correctly
@@ -330,13 +341,6 @@ if all(column in data.columns for column in columns_needed):
 
         # Generate full factorial design
         df_full_factorial_design = create_full_factorial_design(optimal_a_1, optimal_b_1, optimal_c_1, optimal_d_1)
-        st.markdown("<h2 class='virtual-assistant reduce-space'>Fractional Factorial Design</h2>", unsafe_allow_html=True)
-        st.markdown("<div class='gpt-response'>Account for a 10% chance of experiment delays and uncertainties.</div>", unsafe_allow_html=True)
-        st.dataframe(df_full_factorial_design)
-
-        # After generating the full factorial design dataframe
-
-        # Display the Gantt chart
         st.markdown("<h2 class='virtual-assistant reduce-space'>Fractional Factorial Design</h2>", unsafe_allow_html=True)
         st.markdown("<div class='gpt-response'>Account for a 10% chance of experiment delays and uncertainties.</div>", unsafe_allow_html=True)
         st.dataframe(df_full_factorial_design)
